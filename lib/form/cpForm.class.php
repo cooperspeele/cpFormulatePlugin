@@ -14,7 +14,9 @@ class cpForm extends sfFormSymfony {
     $this->localCSRFSecret = $CSRFSecret;
 
     $this->validatorSchema = new sfValidatorSchema();
-    $this->setWidgetSchema(new cpWidgetFormSchema());
+    
+    $widgetFormSchemaClass = $this->getWidgetFormSchemaClass();
+    $this->setWidgetSchema(new $widgetFormSchemaClass());
     $this->errorSchema     = new sfValidatorErrorSchema($this->validatorSchema);
 
     $this->setup();
@@ -27,6 +29,10 @@ class cpForm extends sfFormSymfony {
 
   protected function postSetup() {}
 
+  public function getWidgetFormSchemaClass() {
+    return 'cpWidgetFormSchema';
+  } 
+  
   /**
    * Sets the widgets associated with this form.
    *
@@ -35,7 +41,8 @@ class cpForm extends sfFormSymfony {
    * @return sfForm The current form instance
    */
   public function setWidgets(array $widgets) {
-    $this->setWidgetSchema(new cpWidgetFormSchema($widgets));
+    $widgetFormSchemaClass = $this->getWidgetFormSchemaClass();
+    $this->setWidgetSchema(new $widgetFormSchemaClass($widgets));
     return $this;
   }
 
@@ -76,7 +83,7 @@ class cpForm extends sfFormSymfony {
       }
     }
     else {
-      $tmp = $this->object->getTable()->getFieldNames();
+      $tmp = $this->getObject()->getTable()->getFieldNames();
     }
 
     $tmp = array_diff($tmp, $fields);
@@ -97,7 +104,7 @@ class cpForm extends sfFormSymfony {
     $this->values[$field] = $value;
   }
 
-  protected function getCulture() {
+  public function getCulture() {
     return $this->getOption('culture');
   }
 
@@ -109,7 +116,7 @@ class cpForm extends sfFormSymfony {
     $this->getWidgetSchema()->getFormFormatter()->setTranslationCatalogue($catalogue);
   }
 
-  protected function translate($subject, $parameters = array()) {
+  public function translate($subject, $parameters = array()) {
     return $this->widgetSchema->getFormFormatter()->translate($subject, $parameters);
   }
 
@@ -143,4 +150,20 @@ class cpForm extends sfFormSymfony {
 
     return $this->formFields[$name];
   }
+  
+  /**
+   * Allows 'CSRF attacke' error message to be customized. 
+   * See http://discover-symfony.blogspot.com/2011/03/how-to-change-csrf-attack-detected-in.html
+   * See also http://stackoverflow.com/questions/2578397/symfony-1-4-custom-error-message-for-csrf-in-forms
+   * 
+   * @see sfForm::addCSRFProtection()
+   */
+  public function addCSRFProtection($secret = null) {
+    parent::addCSRFProtection($secret);
+    $validatorSchema=$this->getValidatorSchema();
+    if (isset($validatorSchema[self::$CSRFFieldName])) {
+      $validatorSchema[self::$CSRFFieldName] = 
+        new cpValidatorCSRFToken($validatorSchema[self::$CSRFFieldName]->getOptions());
+    }
+  }  
 }

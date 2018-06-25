@@ -27,7 +27,7 @@ class cpWidgetFormSchemaFormatter extends sfWidgetFormSchemaFormatter {
       }
       else if ($widget instanceof sfWidgetFormSchema) {
         if ($fieldset) { 
-          $token = '</fieldset>';
+          $token = $this->getFieldsetClosingToken($form, $form_name);
           $fieldset = false;
         }
         else { $token = ''; }
@@ -43,7 +43,7 @@ class cpWidgetFormSchemaFormatter extends sfWidgetFormSchemaFormatter {
       }
     }
 
-    if ($fieldset) { $tokens[] = '</fieldset>'; }
+    if ($fieldset) { $tokens[] = $this->getFieldsetClosingToken($form, $form_name); }
     
     $tokens[] = implode("\n", $hiddenRows); 
     $form_format = $is_subform ?
@@ -62,6 +62,11 @@ class cpWidgetFormSchemaFormatter extends sfWidgetFormSchemaFormatter {
     $schema = $this->getWidgetSchema();
     $widget = $schema[$name];
         
+    $widgetAttributes = $this->generateAttributes($widget, $name);
+    if ($widget->getAttribute('holder_class')) {
+      $widget->setAttribute('holder_class', null);
+    }
+    
     // don't add a label tag if we embed a form schema
     $label = $widget instanceof sfWidgetFormSchema ? 
                $this->generateLabelName($name) : 
@@ -76,7 +81,7 @@ class cpWidgetFormSchemaFormatter extends sfWidgetFormSchemaFormatter {
       $error = $widget instanceof sfWidgetFormSchema ? array() : $error;
       $field = $schema->renderField($name, $value, $attributes, $error);
      
-      return $this->renderRow($label, $field, $error, $schema->getHelp($name), null, $this->generateAttributes($widget, $name));
+      return $this->renderRow($label, $field, $error, $schema->getHelp($name), null, $widgetAttributes);
     }
   }
   
@@ -101,4 +106,12 @@ class cpWidgetFormSchemaFormatter extends sfWidgetFormSchemaFormatter {
   
   public function setFieldsFormat($format) { $this->format_fields = $format; }
   
+  protected function getFieldsetToken(sfForm $form, $name = null) {
+    return '<fieldset' . ($name ? ' id="__' . $name . '"' : '') . 
+                         ($form->getOption('fieldset_class') ? ' class="' . $form->getOption('fieldset_class') . '">' : '>');  
+  }
+  
+  protected function getFieldsetClosingToken(sfForm $form, $name = null) {
+    return '</fieldset>';
+  }
 }
